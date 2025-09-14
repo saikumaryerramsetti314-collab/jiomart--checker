@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>JioMart Checker</title>
+</head>
+<body>
+<h2>JioMart Coupon Generator + Checker</h2>
+
+Prefix: <input id="prefix" placeholder="Optional"><br>
+Count: <input id="count" type="number" value="100"><br>
+Token / Cookie: <input id="token" placeholder="Enter token"><br>
+Pin Code: <input id="pin" placeholder="Pin Code"><br>
+<button onclick="startCheck()">Start</button>
+<button onclick="downloadResults()" style="margin-left:10px;">Download Results</button>
+
+<table border="1" id="resultTable">
+  <thead>
+    <tr><th>Coupon</th><th>Status</th><th>Reason</th></tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<script>
+let results = [];
+
+async function startCheck() {
+  const prefix = document.getElementById("prefix").value;
+  const count = document.getElementById("count").value;
+  const token = document.getElementById("token").value;
+  const pin = document.getElementById("pin").value;
+
+  const response = await fetch("http://localhost:5000/start", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({prefix, count, tokenOrCookie: token, pinCode: pin})
+  });
+
+  results = await response.json().then(data => data.results);
+
+  const tbody = document.querySelector("#resultTable tbody");
+  tbody.innerHTML = "";
+  results.forEach(r => {
+    const row = document.createElement("tr");
+    row.innerHTML = `<td>${r.coupon}</td><td>${r.status}</td><td>${r.reason || "-"}</td>`;
+    tbody.appendChild(row);
+  });
+}
+
+function downloadResults() {
+  if(results.length === 0) { alert("No results to download yet!"); return; }
+  const blob = new Blob([JSON.stringify(results, null, 2)], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "jiomart_results.json";
+  a.click();
+}
+</script>
+</body>
+</html>
