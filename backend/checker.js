@@ -2,7 +2,7 @@ const axios = require("axios");
 
 async function checkCoupon({ coupon, cartId, authToken, userId, pin }) {
   try {
-    const response = await axios.get(
+    const res = await axios.get(
       "https://www.jiomart.com/mst/rest/v1/5/cart/apply_coupon",
       {
         params: { coupon_code: coupon, cart_id: cartId },
@@ -11,17 +11,18 @@ async function checkCoupon({ coupon, cartId, authToken, userId, pin }) {
           userid: userId,
           pin: pin,
           Accept: "application/json, text/plain, */*"
-        }
+        },
+        timeout: 10000
       }
     );
 
-    return { coupon, status: "success", data: response.data };
+    if (res.data?.status === "success") {
+      return { status: "success", coupon, result: res.data };
+    } else {
+      return { status: "error", coupon, error: res.data?.message || "Invalid coupon" };
+    }
   } catch (err) {
-    return {
-      coupon,
-      status: "error",
-      error: err.response?.data || err.message
-    };
+    return { status: "error", coupon, error: err.response?.data || err.message };
   }
 }
 
