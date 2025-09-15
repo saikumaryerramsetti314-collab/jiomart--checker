@@ -1,40 +1,56 @@
 const express = require("express");
 const cors = require("cors");
-const bodyParser = require("body-parser");
-const { processCoupons } = require("./queueManager");
+const { generateBatch } = require("./generator");
+const { checkCoupon } = require("./checker");
+const { createQueue } = require("./queueManager");
 
 const app = express();
 app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json());
 
-// SSE (Server Sent Events) for real-time results
+let clients = [];
+let running = false;
+
 app.get("/events", (req, res) => {
   res.set({
     "Content-Type": "text/event-stream",
     "Cache-Control": "no-cache",
-    "Connection": "keep-alive"
+    Connection: "keep-alive"
   });
   res.flushHeaders();
-
-  global.clients.push(res);
+  clients.push(res);
 
   req.on("close", () => {
-    global.clients = global.clients.filter(c => c !== res);
+    clients = clients.filter(c => c !== res);
   });
 });
 
+function sendEvent(data) {
+  clients.forEach(client => client.write(`data: ${JSON.stringify(data)}\n\n`));
+}
+
 app.post("/start", async (req, res) => {
-  const { prefix, count, userId, cartId, authToken, pin, concurrency, retries } = req.body;
+  const { prefix, count, cartId, authToken, userId, pin, concurrency = 2, delayMs = 500 } = req.body;
 
-  if (!userId || !cartId || !authToken || !pin) {
+  if (!cartId || !authToken || !userId || !pin)
     return res.status(400).json({ error: "Missing required fields" });
-  }
 
-  processCoupons({ prefix, count, userId, cartId, authToken, pin, concurrency, retries });
-  res.json({ status: "started", count });
+  if (running) return res.status(400).json({ error: "A batch is already running" });
+  running = true;
+
+  const coupons = generateBatch(prefix || "T", count);
+  const queue = createQueue(concurrency, delayMs);
+
+  coupons.forEach(coupon => {
+    queue.add(async () => {
+      const result = await checkCoupon({ coupon, cartId, authToken, userId, pin });
+      sendEvent(result);
+    });
+  });
+
+  queue.onIdle().then(() => { running = false; });
+  res.json({ status: "started", total: coupons.length });
 });
 
-global.clients = [];
-
 const PORT = 5000;
-app.listen(PORT, () => console.log(`🚀 Server running on http://127.0.0.1:${PORT}`));
+app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
