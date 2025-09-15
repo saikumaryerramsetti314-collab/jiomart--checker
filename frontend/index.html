@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>JioMart Coupon Checker</title>
+  <title>JioMart Coupon Generator + Checker</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -10,13 +10,26 @@
     <h1>JioMart Coupon Generator + Checker</h1>
 
     <form id="checkerForm">
-      <input id="userId" placeholder="User ID" required><br>
-      <input id="cartId" placeholder="Cart ID" required><br>
-      <input id="authToken" placeholder="Auth Token" required><br>
-      <input id="pin" placeholder="Pin Code" required><br>
-      <input id="prefix" placeholder="Prefix (default T)" value="T"><br>
-      <input id="count" type="number" placeholder="Number of coupons" value="20"><br>
+      <label>Prefix (Optional)</label>
+      <input id="prefix" placeholder="T" value="T">
+
+      <label>Count</label>
+      <input id="count" type="number" placeholder="100" value="100">
+
+      <label>Token / Cookie</label>
+      <input id="authToken" placeholder="Enter token">
+
+      <label>Pin Code</label>
+      <input id="pin" placeholder="Pin Code">
+
+      <label>User ID</label>
+      <input id="userId" placeholder="User ID">
+
+      <label>Cart ID</label>
+      <input id="cartId" placeholder="Cart ID">
+
       <button type="submit">Start Checking</button>
+      <button type="button" id="downloadBtn">Download Results</button>
     </form>
 
     <h2>Live Results</h2>
