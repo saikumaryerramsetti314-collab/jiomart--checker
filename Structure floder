@@ -1,0 +1,16 @@
+jiomart-checker/
+│
+├── backend/                # Runs inside Termux (Node.js server)
+│   ├── server.js           # Main backend server (Express)
+│   ├── queueManager.js     # Controls concurrency + retries
+│   ├── generator.js        # Generates coupon codes (T + 10 digits)
+│   ├── checker.js          # Handles real API calls to JioMart
+│   ├── package.json        # Project config + dependencies
+│   └── package-lock.json   # Auto-created after npm install
+│
+├── frontend/               # Runs in browser (UI for users)
+│   ├── index.html          # Main webpage layout (form + results)
+│   ├── app.js              # Sends user inputs to backend, shows results
+│   └── style.css           # Modern dark theme styling
+│
+└── README.md               # (Optional) documentation & setup guide
