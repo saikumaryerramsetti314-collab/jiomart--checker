@@ -1,60 +1,69 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>JioMart Checker</title>
+  <meta charset="UTF-8">
+  <title>JioMart Coupon Checker</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    input, button { margin: 5px; padding: 10px; }
+    .valid { color: green; }
+    .error { color: red; }
+    .running { color: orange; }
+  </style>
 </head>
 <body>
-<h2>JioMart Coupon Generator + Checker</h2>
+  <h1>JioMart Coupon Generator + Checker</h1>
 
-Prefix: <input id="prefix" placeholder="Optional"><br>
-Count: <input id="count" type="number" value="100"><br>
-Token / Cookie: <input id="token" placeholder="Enter token"><br>
-Pin Code: <input id="pin" placeholder="Pin Code"><br>
-<button onclick="startCheck()">Start</button>
-<button onclick="downloadResults()" style="margin-left:10px;">Download Results</button>
+  <form id="checkerForm">
+    <input id="userId" placeholder="User ID" required><br>
+    <input id="cartId" placeholder="Cart ID" required><br>
+    <input id="authToken" placeholder="Auth Token" required><br>
+    <input id="pin" placeholder="Pin Code" required><br>
+    <input id="prefix" placeholder="Prefix (default T)" value="T"><br>
+    <input id="count" type="number" placeholder="Number of coupons" value="20"><br>
+    <button type="submit">Start Checking</button>
+  </form>
 
-<table border="1" id="resultTable">
-  <thead>
-    <tr><th>Coupon</th><th>Status</th><th>Reason</th></tr>
-  </thead>
-  <tbody></tbody>
-</table>
+  <h2>Live Results</h2>
+  <div id="results"></div>
 
-<script>
-let results = [];
+  <script>
+    const resultsDiv = document.getElementById("results");
 
-async function startCheck() {
-  const prefix = document.getElementById("prefix").value;
-  const count = document.getElementById("count").value;
-  const token = document.getElementById("token").value;
-  const pin = document.getElementById("pin").value;
+    document.getElementById("checkerForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
 
-  const response = await fetch("http://localhost:5000/start", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({prefix, count, tokenOrCookie: token, pinCode: pin})
-  });
+      const payload = {
+        userId: document.getElementById("userId").value,
+        cartId: document.getElementById("cartId").value,
+        authToken: document.getElementById("authToken").value,
+        pin: document.getElementById("pin").value,
+        prefix: document.getElementById("prefix").value || "T",
+        count: parseInt(document.getElementById("count").value),
+        concurrency: 2,
+        retries: 2
+      };
 
-  results = await response.json().then(data => data.results);
+      await fetch("http://127.0.0.1:5000/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
 
-  const tbody = document.querySelector("#resultTable tbody");
-  tbody.innerHTML = "";
-  results.forEach(r => {
-    const row = document.createElement("tr");
-    row.innerHTML = `<td>${r.coupon}</td><td>${r.status}</td><td>${r.reason || "-"}</td>`;
-    tbody.appendChild(row);
-  });
-}
-
-function downloadResults() {
-  if(results.length === 0) { alert("No results to download yet!"); return; }
-  const blob = new Blob([JSON.stringify(results, null, 2)], {type:"application/json"});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "jiomart_results.json";
-  a.click();
-}
-</script>
+      const evtSource = new EventSource("http://127.0.0.1:5000/events");
+      evtSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        const div = document.createElement("div");
+        if (data.status === "success") {
+          div.className = "valid";
+          div.textContent = `✅ ${data.coupon} → VALID`;
+        } else {
+          div.className = "error";
+          div.textContent = `❌ ${data.coupon} → ERROR: ${JSON.stringify(data.error)}`;
+        }
+        resultsDiv.prepend(div);
+      };
+    });
+  </script>
 </body>
 </html>
